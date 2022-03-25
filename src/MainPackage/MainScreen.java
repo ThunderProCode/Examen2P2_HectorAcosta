@@ -5,6 +5,7 @@
  */
 package MainPackage;
 
+import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
+import javax.swing.JProgressBar;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -23,7 +25,7 @@ import javax.swing.tree.TreePath;
  *
  * @author ThunderKnight
  */
-public class MainScreen extends javax.swing.JFrame {
+public class MainScreen extends javax.swing.JFrame implements Runnable {
 
     private DefaultMutableTreeNode selectedNode;
     
@@ -251,53 +253,81 @@ public class MainScreen extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_scientistsComboBoxItemStateChanged
 
+    
+
+    
+    
+    
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        
+       
         Database Database = Main.getDatabase();
         String name1 = planet1Name.getText();
-        String name2 = planet2Name.getText();
-        
-        String name3 = scientistsComboBox.getSelectedItem().toString();
+        String name2 = planet2Name.getText(); 
         
         if( Database.getPlanetByName(name1) != null && Database.getPlanetByName(name2) != null ){
             
             Planet planet1 = Database.getPlanetByName(name1);
             Planet planet2 = Database.getPlanetByName(name2);
             
-            if(!planet1.getName().equals( planet2.getName() )){
-                Planet resultantPlanet = planet1.collision(planet2);                
-                if(resultantPlanet != null){
-                    
-                    jProgressBar1.setValue(  );
-                    
-                    if(Database.getScientistByName(name3) != null){
-                        Scientist selectedscientist = Database.getScientistByName(name3);
-                        selectedscientist.addPlanet(resultantPlanet);
-                        Database.saveScientists();
-                        Database.loadScientists();
-                        DefaultTreeModel model = (DefaultTreeModel) discoveredPlanetsTree.getModel();
-                        model.reload();
-
-                        JOptionPane.showMessageDialog(this, "Created " + resultantPlanet.getName() + " planet and added to " + selectedscientist.getName() + " scientist");
-                    }else{
-                        JOptionPane.showMessageDialog(this, "You must select a scientist");
-                    }   
-                    
-                }else{
-                    JOptionPane.showMessageDialog(this, "Planet not generated in this collision");
-                }
-            }else{
-                JOptionPane.showMessageDialog(this, "The two planets must be different");
-            }
+            jProgressBar1.setValue(0);
+            
+            BarThread BarThread = new BarThread();
+            int distance = (int) getDistance(planet1,planet2);
+            BarThread.setDistance(distance);
+            BarThread.setPlanet1(planet1);
+            BarThread.setPlanet2(planet2);
+            BarThread.start();
             
         }else{
             JOptionPane.showMessageDialog(this, "You must select two planets");
         }
     }//GEN-LAST:event_jButton1ActionPerformed
 
-
-    public int getDistance(Planet planet1, Planet planet2){
+    public void afterLoad ( Planet planet1, Planet planet2 ){
         
+        Database Database = Main.getDatabase();
+        String name3 = scientistsComboBox.getSelectedItem().toString();
+
+        if(!planet1.getName().equals( planet2.getName() )){
+            Planet resultantPlanet = planet1.collision(planet2);                
+
+            if(resultantPlanet != null){
+                if(Database.getScientistByName(name3) != null){
+                    Scientist selectedscientist = Database.getScientistByName(name3);
+                    selectedscientist.addPlanet(resultantPlanet);
+                    Database.saveScientists();
+                    Database.loadScientists();
+                    DefaultTreeModel model = (DefaultTreeModel) discoveredPlanetsTree.getModel();
+                    model.reload();
+
+                    JOptionPane.showMessageDialog(this, "Created " + resultantPlanet.getName() + " planet and added to " + selectedscientist.getName() + " scientist");
+
+                }else{
+                    JOptionPane.showMessageDialog(this, "You must select a scientist");
+                }   
+
+            }else{
+                JOptionPane.showMessageDialog(this, "Planet not generated in this collision");
+
+            }
+
+        }else{
+            JOptionPane.showMessageDialog(this, "The two planets must be different");
+        } 
+    }
+
+    public double getDistance(Planet planet1, Planet planet2){
+        
+        int x1 = planet1.getxPosition();
+        int y1 = planet1.getyPosition();
+        
+        int x2 = planet2.getxPosition();
+        int y2 = planet2.getyPosition();
+        
+        double par1 = Math.pow(x2-x1, 2);
+        double par2 = Math.pow(y2-y1, 2);
+        double ans = Math.sqrt(par1+par2);
+        return ans;
     }
     
     public void renderScientists(){
@@ -451,6 +481,14 @@ public class MainScreen extends javax.swing.JFrame {
         });
     }
 
+    public JProgressBar getjProgressBar1() {
+        return jProgressBar1;
+    }
+
+    public void setjProgressBar1(JProgressBar jProgressBar1) {
+        this.jProgressBar1 = jProgressBar1;
+    }
+
     public JTree getDiscoveredPlanetsTree() {
         return discoveredPlanetsTree;
     }
@@ -492,4 +530,9 @@ public class MainScreen extends javax.swing.JFrame {
     private javax.swing.JTree publicPlanetsTree;
     private javax.swing.JComboBox<String> scientistsComboBox;
     // End of variables declaration//GEN-END:variables
+
+    @Override
+    public void run() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }
